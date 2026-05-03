@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0d0f14;
+  --surface:    #161a22;
+  --surface2:   #1e2330;
+  --bubble-in:  #1e2330;
+  --bubble-out: #1a5cff;
+  --bubble-priv:#6c3fc5;
+  --border:     rgba(255,255,255,0.07);
+  --text:       #e8eaf0;
+  --text-2:     #8b92a8;
+  --text-3:     #555d72;
+  --accent:     #1a5cff;
+  --accent-dim: rgba(26,92,255,0.15);
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --font:       'Inter', sans-serif;
+  --font-head:  'Plus Jakarta Sans', sans-serif;
+}
+
+html, body { height: 100%; background: var(--bg); font-family: var(--font); font-size: 15px; color: var(--text); }
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* ── App shell ── */
+.app {
+  width: 100%;
+  max-width: 440px;
+  height: 100vh;
+  max-height: 860px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow: 0 0 0 1px var(--border), 0 40px 80px rgba(0,0,0,0.6);
+}
+
+/* ── Login screen ── */
+.login-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
+  gap: 0;
+}
+
+.login-icon {
+  width: 72px; height: 72px;
+  background: var(--accent-dim);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.login-icon svg { width: 36px; height: 36px; }
+
+.login-title {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 36px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.login-field {
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 12px;
+}
+.login-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.login-field input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 16px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  caret-color: var(--accent);
+}
+.login-field input::placeholder { color: var(--text-3); }
+.login-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(26,92,255,0.15);
+}
+.login-field input.shake {
+  border-color: var(--red);
+  animation: shake 0.35s ease;
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-6px); }
+  75%      { transform: translateX(6px); }
+}
+
+.login-btn {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 8px;
+  padding: 14px;
+  background: var(--accent);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-family: var(--font-head);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  letter-spacing: 0.01em;
+}
+.login-btn:hover   { opacity: 0.88; }
+.login-btn:active  { transform: scale(0.98); }
+.login-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Chat header ── */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.header-info { flex: 1; min-width: 0; }
+.header-name {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-status {
+  font-size: 12px;
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 1px;
+}
+.online-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse-g 2s infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse-g {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* ── Message list ── */
+.msg-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface2) transparent;
+}
+.msg-list::-webkit-scrollbar { width: 3px; }
+.msg-list::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.empty-ring {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 2px dashed var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.empty-ring svg { width: 22px; height: 22px; opacity: 0.4; }
+
+/* Date divider */
+.date-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.date-divider::before, .date-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Bubble groups */
+.bubble-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+  animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.bubble-group.out { align-items: flex-end; }
+.bubble-group.in  { align-items: flex-start; }
+.bubble-group.sys { align-items: center; }
+
+.bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 85%;
+}
+.bubble-group.out .bubble-row { flex-direction: row-reverse; }
+
+.bubble-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.bubble-group.out .bubble-avatar { display: none; }
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  max-width: 100%;
+  position: relative;
+}
+
+.bubble-group.out .bubble {
+  background: var(--bubble-out);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.bubble-group.in .bubble {
+  background: var(--bubble-in);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+.bubble-group.in.private .bubble {
+  background: var(--bubble-priv);
+  color: #fff;
+}
+
+/* sender name above first bubble */
+.bubble-sender {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  padding-left: 4px;
+  margin-bottom: 3px;
+}
+
+.bubble-meta {
+  font-size: 10px;
+  color: var(--text-3);
+  padding: 0 4px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bubble-group.out .bubble-meta { justify-content: flex-end; }
+
+.priv-tag {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: rgba(108,63,197,0.3);
+  color: #c4a8ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+/* system bubble */
+.sys-bubble {
+  background: var(--surface2);
+  color: var(--text-3);
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  text-align: center;
+}
+
+/* ── To-field bar ── */
+.to-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 0;
+  flex-shrink: 0;
+}
+.to-bar-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.to-bar input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 7px 14px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+  caret-color: var(--accent);
+}
+.to-bar input::placeholder { color: var(--text-3); }
+.to-bar input:focus { border-color: var(--accent); }
+.to-bar-hint {
+  font-size: 10px;
+  color: var(--text-3);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Input bar ── */
+.input-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px 16px 20px;
+  flex-shrink: 0;
+}
+
+.input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 0 16px;
+  transition: border-color 0.2s;
+  min-height: 48px;
+}
+.input-wrap:focus-within { border-color: rgba(26,92,255,0.5); }
+
+.input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 13px 0;
+  caret-color: var(--accent);
+}
+.input-wrap input::placeholder { color: var(--text-3); }
+
+.send-btn {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.send-btn:hover  { opacity: 0.85; }
+.send-btn:active { transform: scale(0.93); }
+.send-btn svg { width: 20px; height: 20px; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- LOGIN -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1a5cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <div class="login-title">Bienvenido</div>
+    <div class="login-sub">Ingresa tu nombre de usuario<br>para conectarte al chat</div>
+
+    <div class="login-field">
+      <label>Tu usuario</label>
+      <input id="user-input" type="text" placeholder="ej: alice" autocomplete="off" spellcheck="false">
+    </div>
+
+    <button class="login-btn" id="login-btn" onclick="connect()">Conectar</button>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat-screen" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="avatar" id="my-avatar" style="background:#1a5cff">?</div>
+      <div class="header-info">
+        <div class="header-name" id="my-name">—</div>
+        <div class="header-status">
+          <div class="online-dot"></div>
+          <span>en línea</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- To bar -->
+    <div class="to-bar" id="to-bar">
+      <span class="to-bar-label">Para</span>
+      <input id="to" type="text" placeholder="usuario destino..." autocomplete="off" spellcheck="false">
+      <span class="to-bar-hint">vacío = todos</span>
+    </div>
+
+    <!-- Messages -->
+    <div class="msg-list" id="msg-list">
+      <div class="empty" id="empty-state">
+        <div class="empty-ring">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <span>Sin mensajes aún</span>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-bar">
+      <div class="input-wrap">
+        <input id="msg" type="text" placeholder="Escribe un mensaje..." autocomplete="off" spellcheck="false">
+      </div>
+      <button class="send-btn" onclick="send()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const WS_URL = "wss://kli7956e73.execute-api.us-east-1.amazonaws.com/dev/";
+
+const loginScreen = document.getElementById("login-screen");
+const chatScreen  = document.getElementById("chat-screen");
+const msgList     = document.getElementById("msg-list");
+const msgInput    = document.getElementById("msg");
+const toInput     = document.getElementById("to");
+const loginBtn    = document.getElementById("login-btn");
+
+let socket     = null;
+let userId     = null;
+let emptyEl    = document.getElementById("empty-state");
+let msgHistory = [];
+let histIdx    = -1;
+
+// ── Color per user ──────────────────────────
+const COLORS = ["#1a5cff","#22c55e","#f59e0b","#ec4899","#8b5cf6","#06b6d4","#ef4444","#f97316"];
+function userColor(name) {
+  var h = 0;
+  for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+  return COLORS[Math.abs(h) % COLORS.length];
+}
+function initials(name) {
+  return name.substring(0, 2).toUpperCase();
+}
+
+// ── Connect ─────────────────────────────────
+function connect() {
+  var userVal = document.getElementById("user-input").value.trim();
+  if (!userVal) { shake(document.getElementById("user-input")); return; }
+  userId = userVal;
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Conectando...";
+
+  socket = new WebSocket(WS_URL);
+
+  socket.onopen = function() {
+    socket.send(JSON.stringify({ action: "register", userId: userId }));
+
+    // Update header avatar
+    var col = userColor(userId);
+    document.getElementById("my-avatar").style.background = col;
+    document.getElementById("my-avatar").textContent = initials(userId);
+    document.getElementById("my-name").textContent = userId;
+
+    loginScreen.style.display = "none";
+    chatScreen.style.display  = "flex";
+
+    addSysMsg("Conectado como " + userId);
+    toInput.focus();
+  };
+
+  socket.onclose = function(e) {
+    addSysMsg("Desconectado (code " + e.code + ")");
+  };
+
+  socket.onerror = function() {
+    addSysMsg("Error de conexion");
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Conectar";
+    loginScreen.style.display = "flex";
+    chatScreen.style.display  = "none";
+  };
+
+  socket.onmessage = function(event) {
+    var data = JSON.parse(event.data);
+    var from = data.from || null;
+    var text = typeof data.message === "string" ? data.message : JSON.stringify(data, null, 2);
+    var isPrivate = data.type === "private";
+    addIncomingBubble(from, text, isPrivate);
+  };
+}
+
+// ── Send ─────────────────────────────────────
+function send() {
+  var val = msgInput.value.trim();
+  var to  = toInput.value.trim();
+  if (!val || !socket || socket.readyState !== WebSocket.OPEN) return;
+
+  var payload = { action: "sendMessage", message: val };
+  if (to) payload.to = to;
+  socket.send(JSON.stringify(payload));
+
+  addOutgoingBubble(val, to || null);
+
+  msgHistory.unshift(val);
+  if (msgHistory.length > 80) msgHistory.pop();
+  histIdx = -1;
+  msgInput.value = "";
+  msgInput.focus();
+}
+
+// ── Bubble builders ───────────────────────────
+function removeEmpty() {
+  if (emptyEl) { emptyEl.remove(); emptyEl = null; }
+}
+
+function todayLabel() {
+  return new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" });
+}
+
+var lastDateLabel = null;
+function maybeAddDateDivider() {
+  var label = new Date().toDateString();
+  if (label === lastDateLabel) return;
+  lastDateLabel = label;
+  var div = document.createElement("div");
+  div.className = "date-divider";
+  div.textContent = todayLabel();
+  msgList.appendChild(div);
+}
+
+function timeStr() {
+  return new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+}
+
+function addOutgoingBubble(text, to) {
+  removeEmpty();
+  maybeAddDateDivider();
+
+  var group = document.createElement("div");
+  group.className = "bubble-group out";
+
+  var metaText = timeStr();
+  if (to) metaText += " · para " + to;
+
+  group.innerHTML =
+    '<div class="bubble-row">' +
+      '<div class="bubble">' + escHtml(text) + '</div>' +
+    '</div>' +
+    '<div class="bubble-meta">' + metaText + '</div>';
+
+  msgList.appendChild(group);
+  scrollDown();
+}
+
+function addIncomingBubble(from, text, isPrivate) {
+  removeEmpty();
+  maybeAddDateDivider();
+
+  var name    = from || "unknown";
+  var col     = userColor(name);
+  var privCls = isPrivate ? " private" : "";
+
+  var group = document.createElement("div");
+  group.className = "bubble-group in" + privCls;
+
+  var metaText = timeStr();
+  var privTag  = isPrivate ? '<span class="priv-tag">privado</span>' : "";
+
+  group.innerHTML =
+    (from ? '<div class="bubble-sender">' + escHtml(name) + '</div>' : '') +
+    '<div class="bubble-row">' +
+      '<div class="bubble-avatar" style="background:' + col + '">' + initials(name) + '</div>' +
+      '<div class="bubble">' + escHtml(text) + '</div>' +
+    '</div>' +
+    '<div class="bubble-meta">' + metaText + privTag + '</div>';
+
+  msgList.appendChild(group);
+  scrollDown();
+}
+
+function addSysMsg(text) {
+  removeEmpty();
+  var group = document.createElement("div");
+  group.className = "bubble-group sys";
+  group.innerHTML = '<div class="sys-bubble">' + escHtml(text) + '</div>';
+  msgList.appendChild(group);
+  scrollDown();
+}
+
+function scrollDown() {
+  msgList.scrollTop = msgList.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function shake(el) {
+  el.classList.remove("shake");
+  void el.offsetWidth;
+  el.classList.add("shake");
+  el.addEventListener("animationend", function() { el.classList.remove("shake"); }, { once: true });
+}
+
+// ── Keyboard ─────────────────────────────────
+document.addEventListener("keydown", function(e) {
+  if (e.target === document.getElementById("user-input") && e.key === "Enter") {
+    connect(); return;
+  }
+  if (e.target === toInput && e.key === "Enter") {
+    msgInput.focus(); return;
+  }
+  if (e.target !== msgInput) return;
+  if (e.key === "Enter") {
+    send();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    histIdx = Math.min(histIdx + 1, msgHistory.length - 1);
+    if (msgHistory[histIdx] !== undefined) msgInput.value = msgHistory[histIdx];
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    histIdx = Math.max(histIdx - 1, -1);
+    msgInput.value = histIdx === -1 ? "" : msgHistory[histIdx];
+  }
+});
+</script>
+</body>
+</html>

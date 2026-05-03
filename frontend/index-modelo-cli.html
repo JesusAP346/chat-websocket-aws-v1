@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WS Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111318;
+    --border:   #1e2230;
+    --border2:  #2a2f42;
+    --green:    #00e5a0;
+    --green-dim:#004d36;
+    --amber:    #f5a623;
+    --red:      #ff4d4d;
+    --text:     #c8d0e7;
+    --muted:    #4a5068;
+    --font-mono:'JetBrains Mono', monospace;
+    --font-head:'Syne', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+
+  .terminal {
+    width: 100%;
+    max-width: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: min(700px, 92vh);
+    box-shadow:
+      0 0 0 1px #000,
+      0 32px 64px rgba(0,0,0,0.7),
+      0 0 120px rgba(0,229,160,0.04);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .traffic-lights { display: flex; gap: 6px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #ffbd2e; }
+  .dot-g { background: #28c840; }
+
+  .header-title {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    text-transform: uppercase;
+    flex: 1;
+    text-align: center;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 4px 10px;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    transition: all 0.3s;
+  }
+  .status-badge.connected { color: var(--green); border-color: var(--green-dim); }
+  .status-badge.error     { color: var(--red);   border-color: #4d1a1a; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .status-badge.connected .status-dot { animation: pulse-green 2s infinite; }
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  /* Connect panel */
+  .connect-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 40px;
+  }
+  .connect-logo {
+    font-family: var(--font-head);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .connect-logo span { color: var(--green); }
+
+  .field-group {
+    width: 100%;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .field-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: var(--green);
+  }
+  .field-input::placeholder { color: var(--muted); }
+  .field-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.07);
+  }
+
+  .connect-btn {
+    width: 100%;
+    max-width: 340px;
+    padding: 12px;
+    background: var(--green-dim);
+    border: 1px solid rgba(0,229,160,0.3);
+    border-radius: 8px;
+    color: var(--green);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 6px;
+  }
+  .connect-btn:hover { background: rgba(0,229,160,0.18); border-color: var(--green); }
+  .connect-btn:active { transform: scale(0.98); }
+
+  /* Log */
+  .log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+  .log::-webkit-scrollbar { width: 4px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .empty-icon {
+    width: 40px; height: 40px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--border2);
+  }
+
+  .msg-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-prefix {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding-top: 2px;
+    flex-shrink: 0;
+    min-width: 46px;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .msg-row.sent   .msg-prefix { color: var(--green); }
+  .msg-row.recv   .msg-prefix { color: var(--amber); }
+  .msg-row.system .msg-prefix { color: var(--muted); }
+  .msg-row.err    .msg-prefix { color: var(--red); }
+
+  .msg-body { flex: 1; }
+  .msg-text { color: var(--text); word-break: break-word; }
+  .msg-row.system .msg-text { color: var(--muted); font-style: italic; }
+  .msg-row.err    .msg-text { color: var(--red); }
+  .msg-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Input area */
+  .input-area {
+    padding: 14px 20px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .to-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .to-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  #to {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    caret-color: var(--green);
+  }
+  #to::placeholder { color: var(--muted); }
+  #to:focus { border-color: var(--green); }
+
+  .to-hint {
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 0 6px 0 14px;
+    transition: border-color 0.2s;
+  }
+  .input-row:focus-within {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.07);
+  }
+
+  .prompt-char {
+    color: var(--green);
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  #msg {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 12px 0;
+    caret-color: var(--green);
+  }
+  #msg::placeholder { color: var(--muted); }
+
+  #send-btn {
+    flex-shrink: 0;
+    background: var(--green-dim);
+    border: 1px solid rgba(0,229,160,0.25);
+    color: var(--green);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  #send-btn:hover  { background: rgba(0,229,160,0.2); border-color: var(--green); }
+  #send-btn:active { transform: scale(0.96); }
+
+  .footer-hint {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+  .footer-hint kbd {
+    background: var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text);
+    border: 1px solid var(--border2);
+  }
+</style>
+</head>
+<body>
+
+<div class="terminal">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="traffic-lights">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+    </div>
+    <span class="header-title" id="header-title">WS Terminal</span>
+    <div class="status-badge" id="status-badge">
+      <div class="status-dot"></div>
+      <span id="status-text">disconnected</span>
+    </div>
+  </div>
+
+  <!-- Connect panel -->
+  <div class="connect-panel" id="connect-panel">
+    <div class="connect-logo">WS <span>Terminal</span></div>
+    <div class="field-group">
+      <div>
+        <div class="field-label">tu usuario</div>
+        <input class="field-input" id="user" type="text" placeholder="ej: alice" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <button class="connect-btn" id="connect-btn" onclick="connect()">Conectar &rarr;</button>
+  </div>
+
+  <!-- Message log (hidden until connected) -->
+  <div class="log" id="log" style="display:none">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">&#8857;</div>
+      <span>sin mensajes aun</span>
+    </div>
+  </div>
+
+  <!-- Input area (hidden until connected) -->
+  <div class="input-area" id="input-area" style="display:none">
+    <div class="to-row">
+      <span class="to-label">para</span>
+      <input id="to" type="text" placeholder="usuario destino (opcional)..." autocomplete="off" spellcheck="false">
+      <span class="to-hint">opcional = broadcast</span>
+    </div>
+    <div class="input-row">
+      <span class="prompt-char">&#8250;</span>
+      <input id="msg" type="text" placeholder="escribe un mensaje..." autocomplete="off" spellcheck="false">
+      <button id="send-btn" onclick="send()">Send &#8629;</button>
+    </div>
+    <div class="footer-hint">presiona <kbd>Enter</kbd> para enviar &nbsp;&middot;&nbsp; <kbd>&uarr;</kbd> historial</div>
+  </div>
+
+</div>
+
+<script>
+const WS_URL = "wss://kli7956e73.execute-api.us-east-1.amazonaws.com/dev/";
+
+const logEl        = document.getElementById("log");
+const inputEl      = document.getElementById("msg");
+const toEl         = document.getElementById("to");
+const sendBtn      = document.getElementById("send-btn");
+const badge        = document.getElementById("status-badge");
+const statusTxt    = document.getElementById("status-text");
+const connectPanel = document.getElementById("connect-panel");
+const inputArea    = document.getElementById("input-area");
+const headerTitle  = document.getElementById("header-title");
+
+let emptyEl  = document.getElementById("empty-state");
+let socket   = null;
+let userId   = null;
+let msgHistory = [];
+let histIdx  = -1;
+let msgCount = 0;
+
+// Connect & Register
+function connect() {
+  const userInput = document.getElementById("user");
+  const userVal   = userInput.value.trim();
+  if (!userVal) { userInput.focus(); shake(userInput); return; }
+
+  userId = userVal;
+  document.getElementById("connect-btn").textContent = "Conectando...";
+  document.getElementById("connect-btn").disabled = true;
+
+  socket = new WebSocket(WS_URL);
+
+  socket.onopen = function() {
+    socket.send(JSON.stringify({ action: "register", userId: userId }));
+    setStatus("connected", userId);
+    headerTitle.textContent = "@ " + userId;
+
+    connectPanel.style.display = "none";
+    logEl.style.display        = "flex";
+    inputArea.style.display    = "block";
+
+    appendMsg("system", "SYS", 'registrado como "' + userId + '"');
+    toEl.focus();
+  };
+
+  socket.onclose = function(e) {
+    setStatus("error", "disconnected");
+    appendMsg("err", "ERR", "conexion cerrada (code " + e.code + ")");
+  };
+
+  socket.onerror = function() {
+    setStatus("error", "error");
+    appendMsg("err", "ERR", "error de conexion");
+    document.getElementById("connect-btn").textContent = "Conectar";
+    document.getElementById("connect-btn").disabled = false;
+    connectPanel.style.display = "flex";
+    logEl.style.display        = "none";
+    inputArea.style.display    = "none";
+  };
+
+  socket.onmessage = function(event) {
+    var data = JSON.parse(event.data);
+    var from = data.from || null;
+    var text = typeof data.message === "string" ? data.message : JSON.stringify(data, null, 2);
+    var isPrivate = data.type === "private";
+    var prefix = from ? from.substring(0, 7).toUpperCase() : (isPrivate ? "PRIV" : "RECV");
+    appendMsg(isPrivate ? "recv private" : "recv", prefix, text, from);
+};
+}
+
+// Send
+function send() {
+  var val = inputEl.value.trim();
+  var to  = toEl.value.trim();
+  if (!val || !socket || socket.readyState !== WebSocket.OPEN) return;
+
+  var payload = { action: "sendMessage", message: val };
+  if (to) payload.to = to;
+
+  socket.send(JSON.stringify(payload));
+
+  var label = to ? (">" + to.substring(0, 5)).toUpperCase() : "SENT";
+  appendMsg("sent", label, val);
+
+  msgHistory.unshift(val);
+  if (msgHistory.length > 50) msgHistory.pop();
+  histIdx = -1;
+  inputEl.value = "";
+  inputEl.focus();
+}
+
+// UI
+function setStatus(cls, label) {
+  badge.className = "status-badge " + cls;
+  statusTxt.textContent = label;
+}
+
+function appendMsg(type, prefix, text, from) {
+  msgCount++;
+  if (emptyEl) { emptyEl.remove(); emptyEl = null; }
+
+  var now = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  var meta = from ? (now + " de " + from) : (now + " msg #" + msgCount);
+
+  var row = document.createElement("div");
+  row.className = "msg-row " + type;
+  row.innerHTML =
+    '<span class="msg-prefix">' + escHtml(prefix) + '</span>' +
+    '<div class="msg-body">' +
+      '<div class="msg-text">' + escHtml(text) + '</div>' +
+      '<div class="msg-meta">' + meta + '</div>' +
+    '</div>';
+  logEl.appendChild(row);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;");
+}
+
+function shake(el) {
+  el.style.animation = "none";
+  el.style.borderColor = "var(--red)";
+  setTimeout(function() { el.style.borderColor = ""; }, 800);
+}
+
+// Keyboard
+document.addEventListener("keydown", function(e) {
+  if (e.target === document.getElementById("user") && e.key === "Enter") {
+    connect(); return;
+  }
+  if (e.target === toEl && e.key === "Enter") {
+    inputEl.focus(); return;
+  }
+  if (e.target !== inputEl) return;
+  if (e.key === "Enter") {
+    send();
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    histIdx = Math.min(histIdx + 1, msgHistory.length - 1);
+    if (msgHistory[histIdx] !== undefined) inputEl.value = msgHistory[histIdx];
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    histIdx = Math.max(histIdx - 1, -1);
+    inputEl.value = histIdx === -1 ? "" : msgHistory[histIdx];
+  }
+});
+</script>
+</body>
+</html>
