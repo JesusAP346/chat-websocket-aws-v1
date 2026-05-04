@@ -3,13 +3,28 @@
 ## 📌 Descripción
 Proyecto serverless que implementa un sistema de chat en tiempo real usando WebSockets en AWS.
 
-## 🧱 Arquitectura
+## 📷 Diagrama de arquitectura
+
+![Arquitectura de proyecto chat v1](https://github.com/JesusAP346/chat-websocket-aws-v1/blob/main/architecture/arquitectura-chat-v1.png?raw=true)
+
+
+## Servicios usados
 
 - API Gateway (WebSocket)
 - AWS Lambda
 - DynamoDB
 - S3 (frontend)
 - CloudFront (HTTPS)
+
+## 📚 Documentación
+
+- [Arquitectura](docs/architecture.md)
+- [API Gateway](docs/apigateway.md)
+- [Lambda](docs/lambda.md)
+- [DynamoDB](docs/dynamodb.md)
+- [S3](docs/s3.md)
+- [CloudFront](docs/cloudfront.md)
+
 
 ## 🔄 Flujo
 
@@ -39,9 +54,7 @@ Proyecto serverless que implementa un sistema de chat en tiempo real usando WebS
 - Query + GSI
 - Infraestructura como código
 
-## 📷 Arquitectura
 
-![Arquitectura de proyecto chat v1](https://github.com/JesusAP346/chat-websocket-aws-v1/blob/main/architecture/arquitectura-chat-v1.png?raw=true)
 
 ## 🧑‍💻 Autor
 Jesus Antonio Alvarado Peralta
